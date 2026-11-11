@@ -1,0 +1,429 @@
+[
+  {
+    "id": "tgt-1794300464018-afbvz",
+    "alias": "PhishPhantom",
+    "realName": "Marcus Thorne",
+    "category": "individual",
+    "status": "active",
+    "priority": "medium",
+    "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&auto=format&fit=crop&q=80",
+    "organization": "ShadowGrid Syndicate",
+    "companies": [
+      "Apex Cyber Solutions"
+    ],
+    "groups": [
+      "PhishOps Team"
+    ],
+    "tags": [
+      "#phishing",
+      "#infostealer"
+    ],
+    "handles": [
+      {
+        "id": "h-init-1",
+        "platform": "twitter",
+        "value": "@phantom_sec",
+        "verified": "verified"
+      },
+      {
+        "id": "h-init-2",
+        "platform": "telegram",
+        "value": "@phantom_intel",
+        "verified": "verified"
+      }
+    ],
+    "relationships": [],
+    "timeline": [],
+    "notes": "Identified operating high-volume credential harvesting kit.",
+    "createdAt": "2026-11-10T08:47:44.018Z",
+    "updatedAt": "2026-11-10T08:47:44.049Z"
+  },
+  {
+    "id": "tgt-vortex-raven",
+    "alias": "VortexRaven",
+    "realName": "Alexei Vance",
+    "category": "individual",
+    "status": "active",
+    "priority": "critical",
+    "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80",
+    "organization": "ShadowGrid Syndicate",
+    "companies": [
+      "Nexus Dynamics GmbH",
+      "Apex Cyber Solutions"
+    ],
+    "groups": [
+      "FIN7 Affiliates",
+      "ZeroDay Brokerage"
+    ],
+    "tags": [
+      "#ransomware",
+      "#fin-fraud",
+      "#apt-broker",
+      "#zero-day"
+    ],
+    "location": "Zurich, Switzerland (Suspected)",
+    "handles": [
+      {
+        "id": "h-1",
+        "platform": "twitter",
+        "value": "@vortex_raven_sec",
+        "verified": "verified",
+        "notes": "Broadcasts zero-day claims"
+      },
+      {
+        "id": "h-2",
+        "platform": "telegram",
+        "value": "@vortex_ops",
+        "verified": "verified",
+        "notes": "Primary communications channel"
+      },
+      {
+        "id": "h-3",
+        "platform": "github",
+        "value": "vortexraven-dev",
+        "verified": "suspected",
+        "notes": "Forks of offensive security tooling"
+      },
+      {
+        "id": "h-4",
+        "platform": "email",
+        "value": "alexei.v@apexcybersol.com",
+        "verified": "verified",
+        "notes": "Corporate email for front company"
+      },
+      {
+        "id": "h-5",
+        "platform": "crypto_btc",
+        "value": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+        "verified": "verified",
+        "notes": "Identified extortion payout wallet"
+      },
+      {
+        "id": "h-6",
+        "platform": "darkweb",
+        "value": "http://vortex7xkj5l27e3i29a.onion",
+        "verified": "verified",
+        "notes": "Private leak site drop slot"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rel-1",
+        "targetId": "tgt-cipher-fox",
+        "targetName": "CipherFox",
+        "relationshipType": "collaborator",
+        "notes": "Shared laundering addresses on Monero/BTC bridges"
+      },
+      {
+        "id": "rel-2",
+        "targetId": "tgt-nexus-front",
+        "targetName": "Nexus Dynamics GmbH",
+        "relationshipType": "operates",
+        "notes": "Listed as beneficial owner on leaked registry"
+      }
+    ],
+    "notes": "High-value threat actor specializing in corporate ransom negotiations and zero-day acquisition. Operates front companies across Central Europe. Known to rotate Telegram accounts quarterly.",
+    "timeline": [
+      {
+        "id": "tl-1",
+        "date": "2026-01-14",
+        "event": "Extortion note referencing VortexRaven signature discovered in European utility incident",
+        "source": "Incident Response Report IR-992"
+      },
+      {
+        "id": "tl-2",
+        "date": "2026-02-03",
+        "event": "Registered apexcybersol.com domain through privacy proxy",
+        "source": "WHOIS Telemetry"
+      },
+      {
+        "id": "tl-3",
+        "date": "2026-02-28",
+        "event": "Monitored conducting test transaction of 0.45 BTC to CipherFox escrow wallet",
+        "source": "Blockchain Trace"
+      }
+    ],
+    "createdAt": "2026-01-15T08:00:00Z",
+    "updatedAt": "2026-03-01T11:20:00Z"
+  },
+  {
+    "id": "tgt-cipher-fox",
+    "alias": "CipherFox",
+    "realName": "Elena Rostova",
+    "category": "individual",
+    "status": "surveillance",
+    "priority": "high",
+    "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=256&auto=format&fit=crop&q=80",
+    "organization": "ShadowGrid Syndicate",
+    "companies": [
+      "Nexus Dynamics GmbH",
+      "Balkan Pay Gateway"
+    ],
+    "groups": [
+      "RedCell Alpha"
+    ],
+    "tags": [
+      "#fin-fraud",
+      "#crypto-mixer",
+      "#money-mule"
+    ],
+    "location": "Belgrade, Serbia",
+    "handles": [
+      {
+        "id": "h-11",
+        "platform": "telegram",
+        "value": "@cipherfox_ops",
+        "verified": "verified",
+        "notes": "Encrypted escrow broker"
+      },
+      {
+        "id": "h-12",
+        "platform": "twitter",
+        "value": "@elena_crypto_rs",
+        "verified": "suspected",
+        "notes": "Public crypto consultant persona"
+      },
+      {
+        "id": "h-13",
+        "platform": "crypto_xmr",
+        "value": "888tNkZrPN6JsEgekjMnABU4TBzc2Dt29EPAvkFxbTNsFo5VNcp6mxPjJaD36tJGZ3nMguuiLF7evZOB2Dx",
+        "verified": "verified",
+        "notes": "High-volume laundering address"
+      },
+      {
+        "id": "h-14",
+        "platform": "email",
+        "value": "e.rostova@proton.me",
+        "verified": "verified",
+        "notes": "ProtonMail handle found in paste dump"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rel-3",
+        "targetId": "tgt-vortex-raven",
+        "targetName": "VortexRaven",
+        "relationshipType": "collaborator",
+        "notes": "Handles crypto payout conversions for VortexRaven"
+      },
+      {
+        "id": "rel-4",
+        "targetId": "tgt-nexus-front",
+        "targetName": "Nexus Dynamics GmbH",
+        "relationshipType": "member_of",
+        "notes": "Financial director on filings"
+      }
+    ],
+    "notes": "Key financial facilitator and crypto-mixer technician for Eastern European extortion operations. Manages nested shell entities and mule accounts.",
+    "timeline": [
+      {
+        "id": "tl-11",
+        "date": "2026-02-10",
+        "event": "Flagged by international financial intelligence for rapid XMR peeling chain",
+        "source": "FinCEN Alert"
+      },
+      {
+        "id": "tl-12",
+        "date": "2026-02-28",
+        "event": "Received 0.45 BTC deposit from VortexRaven wallet",
+        "source": "Blockchain Trace"
+      }
+    ],
+    "createdAt": "2026-01-20T10:00:00Z",
+    "updatedAt": "2026-03-02T16:45:00Z"
+  },
+  {
+    "id": "tgt-nexus-front",
+    "alias": "Nexus Dynamics GmbH",
+    "realName": "Nexus Dynamics Proprietary Limited",
+    "category": "company",
+    "status": "monitored",
+    "priority": "high",
+    "avatarUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=256&auto=format&fit=crop&q=80",
+    "organization": "ShadowGrid Syndicate",
+    "companies": [
+      "Nexus Dynamics GmbH",
+      "Apex Cyber Solutions"
+    ],
+    "groups": [
+      "Corporate Front Network"
+    ],
+    "tags": [
+      "#shell-company",
+      "#infrastructure",
+      "#sanctions-evasion"
+    ],
+    "location": "Vienna, Austria / Zug, Switzerland",
+    "handles": [
+      {
+        "id": "h-21",
+        "platform": "website",
+        "value": "https://nexus-dynamics-solutions.com",
+        "verified": "verified",
+        "notes": "Generic tech consulting front website"
+      },
+      {
+        "id": "h-22",
+        "platform": "linkedin",
+        "value": "company/nexus-dynamics-gmbh",
+        "verified": "verified",
+        "notes": "Showcases fake executive profiles"
+      },
+      {
+        "id": "h-23",
+        "platform": "email",
+        "value": "legal@nexus-dynamics-solutions.com",
+        "verified": "verified",
+        "notes": "Domain contact email"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rel-5",
+        "targetId": "tgt-vortex-raven",
+        "targetName": "VortexRaven",
+        "relationshipType": "parent_company_of",
+        "notes": "Used to issue salary payments and corporate credit cards"
+      }
+    ],
+    "notes": "Corporate shell entity suspected of laundering cyber extortion proceeds and leasing dedicated bulletproof server infrastructure.",
+    "timeline": [
+      {
+        "id": "tl-21",
+        "date": "2025-11-05",
+        "event": "Incorporation in Austrian Commercial Register",
+        "source": "Public Registry"
+      },
+      {
+        "id": "tl-22",
+        "date": "2026-01-08",
+        "event": "Subnet 194.26.29.0/24 assigned to organization name",
+        "source": "BGP Routing Table"
+      }
+    ],
+    "createdAt": "2026-01-10T12:00:00Z",
+    "updatedAt": "2026-02-25T14:10:00Z"
+  },
+  {
+    "id": "tgt-ghost-operator",
+    "alias": "KryptosSyndicate",
+    "realName": "Decentralized Extortion Collective",
+    "category": "syndicate",
+    "status": "flagged",
+    "priority": "critical",
+    "avatarUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=256&auto=format&fit=crop&q=80",
+    "organization": "ShadowGrid Syndicate",
+    "companies": [
+      "Apex Cyber Solutions"
+    ],
+    "groups": [
+      "DarkForum Core",
+      "LeakSite Admin"
+    ],
+    "tags": [
+      "#apt-group",
+      "#data-leak",
+      "#critical-infra"
+    ],
+    "location": "Distributed / International",
+    "handles": [
+      {
+        "id": "h-31",
+        "platform": "darkweb",
+        "value": "http://kryptosleaks772910fa.onion",
+        "verified": "verified",
+        "notes": "Official victim publication blog"
+      },
+      {
+        "id": "h-32",
+        "platform": "telegram",
+        "value": "https://t.me/kryptos_press",
+        "verified": "verified",
+        "notes": "Press releases and victim announcements"
+      },
+      {
+        "id": "h-33",
+        "platform": "twitter",
+        "value": "@kryptos_intel",
+        "verified": "suspected",
+        "notes": "Account created 2026"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rel-6",
+        "targetId": "tgt-vortex-raven",
+        "targetName": "VortexRaven",
+        "relationshipType": "operates",
+        "notes": "Believed to be a principal coordinator for Kryptos negotiations"
+      }
+    ],
+    "notes": "Ransomware cartel active since late 2025 targeting supply chain software providers. Employs double-extortion tactics.",
+    "timeline": [
+      {
+        "id": "tl-31",
+        "date": "2026-02-18",
+        "event": "Published data sample belonging to aerospace supplier",
+        "source": "Tor Leak Monitor"
+      }
+    ],
+    "createdAt": "2026-02-01T15:00:00Z",
+    "updatedAt": "2026-03-03T18:00:00Z"
+  },
+  {
+    "id": "tgt-sentinel-dormant",
+    "alias": "NullVector",
+    "realName": "David S. Chen",
+    "category": "individual",
+    "status": "cold",
+    "priority": "low",
+    "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=256&auto=format&fit=crop&q=80",
+    "organization": "Independent",
+    "companies": [
+      "Chen Consulting Ltd"
+    ],
+    "groups": [
+      "Historic Forum 2023"
+    ],
+    "tags": [
+      "#legacy-target",
+      "#reverse-engineer",
+      "#dormant"
+    ],
+    "location": "Vancouver, Canada",
+    "handles": [
+      {
+        "id": "h-41",
+        "platform": "github",
+        "value": "chen-research",
+        "verified": "verified",
+        "notes": "Inactive since mid 2024"
+      },
+      {
+        "id": "h-42",
+        "platform": "linkedin",
+        "value": "in/david-chen-security",
+        "verified": "verified",
+        "notes": "Currently lists independent cybersecurity contractor"
+      },
+      {
+        "id": "h-43",
+        "platform": "email",
+        "value": "david@chenconsulting.ca",
+        "verified": "verified"
+      }
+    ],
+    "relationships": [],
+    "notes": "Former security researcher previously identified in initial recon activities. No active malicious behavior observed in the past 18 months.",
+    "timeline": [
+      {
+        "id": "tl-41",
+        "date": "2024-09-30",
+        "event": "Closed active darknet marketplace escrow account",
+        "source": "Market Monitor"
+      }
+    ],
+    "createdAt": "2024-10-01T09:00:00Z",
+    "updatedAt": "2025-08-12T10:00:00Z"
+  }
+]

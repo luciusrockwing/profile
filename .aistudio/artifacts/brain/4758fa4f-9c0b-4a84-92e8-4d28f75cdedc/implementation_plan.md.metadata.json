@@ -1,0 +1,6 @@
+{
+  "summary":  "Architectural implementation plan for integrating Meta's Astryx design system framework into the self-hosted OSINT platform. Outlines local component primitive importation, cyber dark theme tokens with cyan/emerald accents, full-platform redesign of the navigation, dossiers, entity graph overlay, report generator, and data management views while maintaining zero-binary server storage.",
+  "updatedAt":  "2026-11-11T01:07:39.708268900Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

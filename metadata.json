@@ -1,0 +1,6 @@
+{
+  "name": "Specter OSINT - Self-Hosted Intelligence Dossier & Entity Graph",
+  "description": "Minimalist self-hosted OSINT investigation dashboard. Zero server image storage: loads target photos client-side from external URLs. Features interactive entity graph connection links, handle slots, target dossiers, and intelligence reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
