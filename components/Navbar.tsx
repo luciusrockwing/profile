@@ -42,8 +42,13 @@ export function Navbar({
         <div className="flex items-center justify-between h-16">
           {/* Astryx Brand Mark */}
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded border border-cyan-500/40 bg-cyan-950/40 flex items-center justify-center text-cyan-400 shadow-sm shadow-cyan-500/10">
-              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+            <div className="w-8 h-8 rounded border border-cyan-500/50 bg-black overflow-hidden flex items-center justify-center shadow-sm shadow-cyan-500/20">
+              <img
+                src="/logo.jpg"
+                alt="Specter OSINT"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <div className="flex items-center space-x-2">
