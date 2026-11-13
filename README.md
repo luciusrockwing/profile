@@ -91,6 +91,23 @@ Full-featured responsive layout adapted for tablet and mobile devices with touch
 | **Testing** | Node.js Native Test Runner (`node:test`, `tsx`) |
 | **Browser QA** | Playwright CLI (`@playwright/cli`) |
 
+## AI Agent Setup
+
+#copy this to agent and setup on user device
+```text
+You are an autonomous setup engineer for SPECTER OSINT. Follow these instructions:
+1. Clone repository and enter project directory:
+   git clone <REPO_URL> && cd specter-osint
+2. Install project dependencies:
+   npm install
+3. Validate unit test suite and production build:
+   npx tsx --test lib/osint-engine.test.ts && npm run build
+4. Start local development server on port 3000:
+   npm run dev -- -p 3000
+5. Verify http://localhost:3000 is accepting connections and ask the user:
+   "SPECTER OSINT platform is operational on http://localhost:3000. Do you need any help to set up demo dossiers (e.g. PhishPhantom, KryptosSyndicate, VortexRaven) or register new intelligence targets?"
+```
+
 ---
 
 ## Quick Start
