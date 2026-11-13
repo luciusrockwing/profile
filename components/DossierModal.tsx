@@ -48,17 +48,25 @@ export function DossierModal({ target, onClose, onEdit }: DossierModalProps) {
 
   const checksum = generateForensicChecksum(target);
 
-  const copyChecksum = () => {
-    navigator.clipboard.writeText(checksum);
-    setCopiedHash(true);
-    setTimeout(() => setCopiedHash(false), 2000);
+  const copyChecksum = async () => {
+    try {
+      await navigator.clipboard?.writeText(checksum);
+      setCopiedHash(true);
+      setTimeout(() => setCopiedHash(false), 2000);
+    } catch {
+      // ignore clipboard restrictions
+    }
   };
 
-  const copyFullReport = () => {
-    const report = generateDossierReport(target);
-    navigator.clipboard.writeText(report);
-    setCopiedReport(true);
-    setTimeout(() => setCopiedReport(false), 2000);
+  const copyFullReport = async () => {
+    try {
+      const report = generateDossierReport(target);
+      await navigator.clipboard?.writeText(report);
+      setCopiedReport(true);
+      setTimeout(() => setCopiedReport(false), 2000);
+    } catch {
+      // ignore clipboard restrictions
+    }
   };
 
   const downloadReport = () => {
@@ -309,6 +317,53 @@ export function DossierModal({ target, onClose, onEdit }: DossierModalProps) {
             </AstryxTable>
           )}
         </div>
+
+        {/* Relationships & Timeline */}
+        {(target.relationships.length > 0 || target.timeline.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3.5 rounded-lg border border-[#16233b] bg-[#070b14] space-y-2">
+              <h4 className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+                Entity Relationships ({target.relationships.length})
+              </h4>
+              {target.relationships.length === 0 ? (
+                <p className="text-xs font-mono text-slate-500 italic">No inter-target connections linked.</p>
+              ) : (
+                <div className="space-y-1.5 text-xs font-mono">
+                  {target.relationships.map((rel) => (
+                    <div key={rel.id} className="p-2 rounded border border-[#121d33] bg-[#090e18]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-100 font-semibold truncate">{rel.targetName}</span>
+                        <span className="text-[10px] text-cyan-400 uppercase shrink-0">
+                          {rel.relationshipType.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      {rel.notes && <p className="text-[11px] text-slate-400 mt-1">{rel.notes}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 rounded-lg border border-[#16233b] bg-[#070b14] space-y-2">
+              <h4 className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+                Chronology &amp; Timeline ({target.timeline.length})
+              </h4>
+              {target.timeline.length === 0 ? (
+                <p className="text-xs font-mono text-slate-500 italic">No timeline entries recorded.</p>
+              ) : (
+                <div className="space-y-1.5 text-xs font-mono">
+                  {target.timeline.map((item) => (
+                    <div key={item.id} className="p-2 rounded border border-[#121d33] bg-[#090e18]">
+                      <div className="text-[10px] text-amber-300">{item.date}</div>
+                      <div className="text-slate-200 mt-0.5">{item.event}</div>
+                      {item.source && <div className="text-[10px] text-slate-500 mt-0.5">Source: {item.source}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Notes & Intelligence Summary */}
         <div className="space-y-1.5">

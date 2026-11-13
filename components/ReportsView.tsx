@@ -41,10 +41,14 @@ export function ReportsView({ targets, onSelectTarget }: ReportsViewProps) {
     return generateForensicChecksum(selectedTarget);
   }, [selectedTarget]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(reportText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard?.writeText(reportText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore clipboard restrictions in headless/iframe contexts
+    }
   };
 
   const handleDownload = () => {
@@ -80,7 +84,7 @@ export function ReportsView({ targets, onSelectTarget }: ReportsViewProps) {
         {/* Target Select Dropdown */}
         <div className="flex items-center space-x-2 w-full sm:w-72">
           <AstryxSelect
-            value={selectedTargetId}
+            value={selectedTarget?.id || ''}
             onChange={(e) => setSelectedTargetId(e.target.value)}
             options={targets.map((t) => ({
               value: t.id,

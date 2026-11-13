@@ -16,6 +16,7 @@ import { OsintTarget } from '@/lib/osint-types';
 import { AstryxButton } from './astryx/Button';
 import { AstryxBadge } from './astryx/Badge';
 import { AstryxCard, AstryxCardHeader, AstryxCardBody, AstryxCardFooter } from './astryx/Card';
+import { AstryxModal } from './astryx/Modal';
 
 interface DataManagementViewProps {
   targets: OsintTarget[];
@@ -33,6 +34,7 @@ export function DataManagementView({
     text: string;
   } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Compute storage statistics
@@ -95,20 +97,18 @@ export function DataManagementView({
   };
 
   // Reset to default sample seed data
-  const handleResetData = async () => {
-    if (!confirm('Reset investigation database to factory seed targets? All custom target profiles will be overwritten.')) {
-      return;
-    }
-
+  const handleConfirmResetData = async () => {
     setIsResetting(true);
     try {
       await onReset();
+      setShowResetModal(false);
       setStatusMessage({
         type: 'success',
         text: 'Database successfully re-seeded with factory intelligence profiles.',
       });
     } catch (err) {
       console.error('Reset error:', err);
+      setShowResetModal(false);
       setStatusMessage({
         type: 'error',
         text: 'Failed to reset database.',
@@ -292,12 +292,47 @@ export function DataManagementView({
             size="sm"
             loading={isResetting}
             icon={<RotateCcw className="w-3.5 h-3.5" />}
-            onClick={handleResetData}
+            onClick={() => setShowResetModal(true)}
           >
             Reset DB to Seed Data
           </AstryxButton>
         </AstryxCardFooter>
       </AstryxCard>
+
+      <AstryxModal
+        isOpen={showResetModal}
+        onClose={() => !isResetting && setShowResetModal(false)}
+        size="md"
+        title="CONFIRM DATABASE RESET"
+        subtitle="data/targets.json"
+        footer={
+          <div className="flex items-center justify-end space-x-2">
+            <AstryxButton
+              variant="outline"
+              size="sm"
+              disabled={isResetting}
+              onClick={() => setShowResetModal(false)}
+            >
+              Cancel
+            </AstryxButton>
+            <AstryxButton
+              variant="destructive"
+              size="sm"
+              loading={isResetting}
+              onClick={handleConfirmResetData}
+            >
+              Reset Database
+            </AstryxButton>
+          </div>
+        }
+      >
+        <div className="flex items-start space-x-3 font-mono text-xs text-slate-300">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Reset investigation database to factory seed targets? All custom target profiles will be overwritten.
+          </p>
+        </div>
+      </AstryxModal>
     </div>
   );
 }

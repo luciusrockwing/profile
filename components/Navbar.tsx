@@ -7,7 +7,6 @@ import {
   UserPlus,
   FileText,
   HardDrive,
-  ShieldCheck,
 } from 'lucide-react';
 import { AstryxButton } from './astryx/Button';
 import { AstryxBadge } from './astryx/Badge';
@@ -39,10 +38,10 @@ export function Navbar({
   return (
     <header className="border-b border-[#121d33] bg-[#070b14]/95 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between gap-3 h-16">
           {/* Astryx Brand Mark */}
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded border border-cyan-500/50 bg-black overflow-hidden flex items-center justify-center shadow-sm shadow-cyan-500/20">
+          <div className="flex items-center space-x-3 shrink-0">
+            <div className="w-8 h-8 rounded border border-cyan-500/50 bg-black overflow-hidden flex items-center justify-center shadow-sm shadow-cyan-500/20 shrink-0">
               <img
                 src="/logo.jpg"
                 alt="Specter OSINT"
@@ -50,8 +49,8 @@ export function Navbar({
                 referrerPolicy="no-referrer"
               />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2 whitespace-nowrap">
                 <span className="font-mono font-bold tracking-wider text-slate-100 text-sm sm:text-base">
                   SPECTER <span className="text-cyan-400 font-normal">/</span> OSINT
                 </span>
@@ -59,14 +58,14 @@ export function Navbar({
                   ZERO-BLOB
                 </AstryxBadge>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono hidden sm:block">
+              <p className="text-[10px] text-slate-400 font-mono hidden xl:block whitespace-nowrap">
                 Astryx Cyber Engine • Direct-Link Client Architecture
               </p>
             </div>
           </div>
 
           {/* Astryx Live Telemetry Bar */}
-          <div className="hidden lg:flex items-center space-x-5 text-xs font-mono text-slate-400 border-l border-r border-[#121d33] px-4">
+          <div className="hidden lg:flex items-center space-x-4 text-xs font-mono text-slate-400 border-l border-r border-[#121d33] px-3 shrink-0 whitespace-nowrap">
             <div className="flex items-center space-x-1.5">
               <span className="text-slate-500">TARGETS:</span>
               <span className="text-cyan-400 font-semibold tabular-nums">{targetCount}</span>
@@ -82,7 +81,7 @@ export function Navbar({
           </div>
 
           {/* Navigation Controls */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 shrink-0">
             <nav className="flex items-center space-x-1">
               {navItems.map((item) => {
                 const isActive = activeTab === item.id;
@@ -90,7 +89,7 @@ export function Navbar({
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-mono transition-colors relative ${
+                    className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded text-xs font-mono whitespace-nowrap transition-colors relative ${
                       isActive
                         ? 'text-cyan-300 bg-cyan-950/40 border border-cyan-500/40'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-[#0e1626] border border-transparent'
@@ -100,7 +99,7 @@ export function Navbar({
                     <span className={isActive ? 'text-cyan-400' : 'text-slate-400'}>
                       {item.icon}
                     </span>
-                    <span className="hidden sm:inline">{item.label}</span>
+                    <span className="hidden md:inline">{item.label}</span>
                   </button>
                 );
               })}
@@ -114,7 +113,7 @@ export function Navbar({
               onClick={() => setActiveTab('new')}
               aria-label="Add New OSINT Target"
             >
-              <span className="font-mono font-medium">+ Add Target</span>
+              <span className="font-mono font-medium">Add Target</span>
             </AstryxButton>
           </div>
         </div>

@@ -154,24 +154,48 @@ export function formatPlatformUrl(platform: SocialPlatform, value: string): stri
   // Mastodon: @user@instance.tld -> https://instance.tld/@user
   if (platform === 'mastodon') {
     const parts = clean.replace(/^@/, '').split('@');
-    if (parts.length === 2) {
+    if (parts.length === 2 && parts[0] && parts[1]) {
       return `https://${parts[1]}/@${parts[0]}`;
     }
+    return null;
   }
 
   const config = PLATFORM_REGISTRY[platform];
   if (config?.urlPrefix) {
-    let stripped = clean.replace(/^[@/]/, '');
+    let stripped = clean.replace(/^[@/]+/, '');
     // Strip redundant domain if user typed e.g. "t.me/handle" or "x.com/handle"
-    if (platform === 'telegram') stripped = stripped.replace(/^(t\.me|telegram\.me)\//i, '');
-    if (platform === 'twitter') stripped = stripped.replace(/^(x\.com|twitter\.com)\//i, '');
-    if (platform === 'github') stripped = stripped.replace(/^(github\.com)\//i, '');
-    if (platform === 'linkedin') stripped = stripped.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/(in\/)?/i, '').replace(/^in\//i, '');
-    if (platform === 'instagram') stripped = stripped.replace(/^(instagram\.com)\//i, '');
-    if (platform === 'tiktok') stripped = stripped.replace(/^(tiktok\.com\/@|tiktok\.com)\//i, '');
-    if (platform === 'reddit') stripped = stripped.replace(/^(reddit\.com\/user|reddit\.com\/u|u\/)/i, '');
-    if (platform === 'youtube') stripped = stripped.replace(/^(youtube\.com\/@|youtube\.com\/c|youtube\.com)\//i, '');
-    if (platform === 'facebook') stripped = stripped.replace(/^(facebook\.com)\//i, '');
+    if (platform === 'telegram') stripped = stripped.replace(/^(www\.)?(t\.me|telegram\.me)\//i, '');
+    if (platform === 'twitter') stripped = stripped.replace(/^(www\.)?(x\.com|twitter\.com)\//i, '');
+    if (platform === 'github') stripped = stripped.replace(/^(www\.)?(github\.com)\//i, '');
+    if (platform === 'instagram') stripped = stripped.replace(/^(www\.)?(instagram\.com)\//i, '');
+    if (platform === 'tiktok') stripped = stripped.replace(/^(www\.)?(tiktok\.com\/@|tiktok\.com)\//i, '').replace(/^@/, '');
+    if (platform === 'facebook') stripped = stripped.replace(/^(www\.)?(facebook\.com)\//i, '');
+
+    if (platform === 'linkedin') {
+      stripped = stripped.replace(/^(www\.)?linkedin\.com\//i, '');
+      if (/^(company|school|showcase)\//i.test(stripped)) {
+        return `https://linkedin.com/${stripped}`;
+      }
+      stripped = stripped.replace(/^in\//i, '');
+      return `${config.urlPrefix}${stripped}`;
+    }
+
+    if (platform === 'reddit') {
+      stripped = stripped.replace(/^(www\.)?reddit\.com\//i, '');
+      if (/^(r|user|u)\//i.test(stripped)) {
+        const normalized = stripped.replace(/^u\//i, 'user/');
+        return `https://reddit.com/${normalized}`;
+      }
+      return `${config.urlPrefix}${stripped}`;
+    }
+
+    if (platform === 'youtube') {
+      stripped = stripped.replace(/^(www\.)?youtube\.com\//i, '');
+      if (/^(c|channel|user)\//i.test(stripped) || stripped.startsWith('@')) {
+        return `https://youtube.com/${stripped}`;
+      }
+      return `${config.urlPrefix}${stripped}`;
+    }
 
     return `${config.urlPrefix}${stripped}`;
   }
@@ -301,12 +325,13 @@ export function buildEntityGraph(
   for (const t of targets) {
     const targetNodeId = `target_${t.id}`;
 
-    if (t.organization && options.includeGroups) {
-      const orgId = `org_${t.organization.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const trimmedOrg = t.organization?.trim();
+    if (trimmedOrg && options.includeGroups) {
+      const orgId = `org_${trimmedOrg.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
       if (!nodesMap.has(orgId)) {
         nodesMap.set(orgId, {
           id: orgId,
-          label: t.organization,
+          label: trimmedOrg,
           type: 'group',
           details: 'Organization / Syndicate',
         });
@@ -506,4 +531,45 @@ export function generateDossierReport(target: OsintTarget): string {
   lines.push(`========================================================================`);
 
   return lines.join('\n');
+}
+
+/**
+ * Removes a target by ID and cleans up any dangling relationships referencing it.
+ */
+export function removeTargetAndCleanRelationships(
+  targets: OsintTarget[],
+  targetId: string
+): OsintTarget[] {
+  return targets
+    .filter((t) => t.id !== targetId)
+    .map((t) => {
+      const hasDangling = t.relationships.some((rel) => rel.targetId === targetId);
+      if (!hasDangling) return t;
+      return {
+        ...t,
+        relationships: t.relationships.filter((rel) => rel.targetId !== targetId),
+      };
+    });
+}
+
+/**
+ * Updates cached relationship targetName references across all targets when a target's alias changes.
+ */
+export function syncRelationshipTargetNames(
+  targets: OsintTarget[],
+  updatedTarget: OsintTarget
+): OsintTarget[] {
+  return targets.map((t) => {
+    if (t.id === updatedTarget.id) return t;
+    const needsSync = t.relationships.some(
+      (rel) => rel.targetId === updatedTarget.id && rel.targetName !== updatedTarget.alias
+    );
+    if (!needsSync) return t;
+    return {
+      ...t,
+      relationships: t.relationships.map((rel) =>
+        rel.targetId === updatedTarget.id ? { ...rel, targetName: updatedTarget.alias } : rel
+      ),
+    };
+  });
 }

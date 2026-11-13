@@ -23,10 +23,12 @@ export function AstryxAvatar({
   status,
   className = '',
 }: AstryxAvatarProps) {
-  const [imageError, setImageError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
 
   const resolvedStatus = status || statusRing;
+  const imageError = Boolean(src && failedSrc === src);
+  const loaded = Boolean(src && loadedSrc === src);
 
   const sizeClasses = {
     sm: 'w-8 h-8 text-xs',
@@ -109,12 +111,13 @@ export function AstryxAvatar({
         Zero server binary storage or server proxy overhead.
       */}
       <img
+        key={src}
         src={src}
         alt={alt}
         referrerPolicy="no-referrer"
         loading="lazy"
-        onLoad={() => setLoaded(true)}
-        onError={() => setImageError(true)}
+        onLoad={() => setLoadedSrc(src)}
+        onError={() => setFailedSrc(src)}
         className={`w-full h-full object-cover transition-opacity duration-200 ${
           loaded ? 'opacity-100' : 'opacity-0'
         }`}

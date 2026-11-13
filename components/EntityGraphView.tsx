@@ -9,11 +9,9 @@ import {
   Filter,
   Eye,
   ExternalLink,
-  Shield,
   Building,
   Users,
   AtSign,
-  Mail,
   Tag,
   ArrowRight,
   X,
@@ -144,17 +142,16 @@ export function EntityGraphView({
         radius = 14;
       }
 
-      // Preload image if target has avatar URL
+      // Preload image if target has avatar URL (no crossOrigin to avoid CORS blocking on non-CORS hosts)
       if (n.avatarUrl && !imageCacheRef.current.has(n.avatarUrl)) {
         const img = new Image();
         img.referrerPolicy = 'no-referrer';
-        img.crossOrigin = 'anonymous';
         img.src = n.avatarUrl;
         imageCacheRef.current.set(n.avatarUrl, img);
       }
 
       // Initial placement in orbit if new
-      const angle = (idx / rawGraph.nodes.length) * Math.PI * 2;
+      const angle = (idx / Math.max(1, rawGraph.nodes.length)) * Math.PI * 2;
       const dist = 160 + (idx % 3) * 80;
 
       const node: SimNode = {
@@ -184,16 +181,24 @@ export function EntityGraphView({
     };
   }, [rawGraph]);
 
-  // Center view on mount or reset
+  // Center view on mount or reset using actual rendered canvas dimensions
   const resetViewport = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || canvas.width || 1000;
+    const h = rect.height || canvas.height || 700;
+    if (rect.width > 0 && rect.height > 0) {
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    const scale = 0.95;
     transformRef.current = {
-      x: canvas.width / 2 - 500,
-      y: canvas.height / 2 - 350,
-      scale: 0.95,
+      x: w / 2 - 500 * scale,
+      y: h / 2 - 350 * scale,
+      scale,
     };
-    setZoomLevel(0.95);
+    setZoomLevel(scale);
   }, []);
 
   useEffect(() => {
@@ -226,6 +231,23 @@ export function EntityGraphView({
     return set;
   }, [selectedNodeId, rawGraph.links]);
 
+  // Refs for animation loop so node clicks don't tear down requestAnimationFrame
+  const isSimulatingRef = useRef(isSimulating);
+  const selectedNodeIdRef = useRef(selectedNodeId);
+  const connectedNodeIdsRef = useRef(connectedNodeIds);
+
+  useEffect(() => {
+    isSimulatingRef.current = isSimulating;
+  }, [isSimulating]);
+
+  useEffect(() => {
+    selectedNodeIdRef.current = selectedNodeId;
+  }, [selectedNodeId]);
+
+  useEffect(() => {
+    connectedNodeIdsRef.current = connectedNodeIds;
+  }, [connectedNodeIds]);
+
   // Selected node object
   const selectedNode = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -254,23 +276,25 @@ export function EntityGraphView({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Resize canvas to match display size
-    const updateSize = () => {
-      const rect = canvas.getBoundingClientRect();
-      if (canvas.width !== rect.width || canvas.height !== rect.height) {
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-      }
-    };
-    updateSize();
+      // Resize canvas to match display size
+      const updateSize = () => {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && (canvas.width !== rect.width || canvas.height !== rect.height)) {
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+      };
+      updateSize();
 
     const loop = () => {
       updateSize();
       const { nodes, links } = simStateRef.current;
       const { x: tx, y: ty, scale } = transformRef.current;
+      const activeSelectedId = selectedNodeIdRef.current;
+      const activeConnectedIds = connectedNodeIdsRef.current;
 
       // 1. Force Simulation Step
-      if (isSimulating) {
+      if (isSimulatingRef.current) {
         const k = 0.035; // Spring stiffness
         const rep = 1600; // Repulsion constant
         const damping = 0.86;
@@ -370,8 +394,8 @@ export function EntityGraphView({
         if (!s || !t) continue;
 
         const isHighlighted =
-          connectedNodeIds && (connectedNodeIds.has(s.id) && connectedNodeIds.has(t.id));
-        const isDimmed = connectedNodeIds && !isHighlighted;
+          activeConnectedIds && activeConnectedIds.has(s.id) && activeConnectedIds.has(t.id);
+        const isDimmed = activeConnectedIds && !isHighlighted;
 
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
@@ -394,8 +418,8 @@ export function EntityGraphView({
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Link label in center if scale > 0.8
-        if (scale > 0.75 && (isHighlighted || !connectedNodeIds)) {
+        // Link label in center if scale > 0.75
+        if (scale > 0.75 && (isHighlighted || !activeConnectedIds)) {
           const midX = (s.x + t.x) / 2;
           const midY = (s.y + t.y) / 2;
           ctx.font = '9px monospace';
@@ -408,9 +432,9 @@ export function EntityGraphView({
 
       // Render Nodes
       for (const n of nodes) {
-        const isSelected = selectedNodeId === n.id;
-        const isConnected = connectedNodeIds && connectedNodeIds.has(n.id);
-        const isDimmed = connectedNodeIds && !isConnected;
+        const isSelected = activeSelectedId === n.id;
+        const isConnected = activeConnectedIds && activeConnectedIds.has(n.id);
+        const isDimmed = activeConnectedIds && !isConnected;
 
         ctx.save();
         ctx.translate(n.x, n.y);
@@ -452,7 +476,7 @@ export function EntityGraphView({
               ctx.drawImage(img, -r + 3, -r + 3, (r - 3) * 2, (r - 3) * 2);
               avatarRendered = true;
             } catch {
-              // fallback if cross-origin tainted
+              // fallback if image draw fails
             }
             ctx.restore();
           }
@@ -466,9 +490,9 @@ export function EntityGraphView({
           ctx.textBaseline = 'middle';
           let symbol = '';
           if (n.type === 'target') symbol = n.label.slice(0, 2).toUpperCase();
-          else if (n.type === 'company') symbol = '🏢';
-          else if (n.type === 'group') symbol = '⚡';
-          else if (n.type === 'email') symbol = '✉';
+          else if (n.type === 'company') symbol = 'CO';
+          else if (n.type === 'group') symbol = 'GR';
+          else if (n.type === 'email') symbol = 'EM';
           else if (n.type === 'handle') symbol = '@';
           else symbol = '#';
           ctx.fillText(symbol, 0, 0);
@@ -499,7 +523,7 @@ export function EntityGraphView({
 
     animFrame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animFrame);
-  }, [isSimulating, connectedNodeIds, selectedNodeId]);
+  }, []);
 
   // Mouse / Pointer Event Handlers for Dragging & Zooming
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -517,9 +541,12 @@ export function EntityGraphView({
     };
   };
 
+  const didDragRef = useRef(false);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoords(e);
     const { nodes } = simStateRef.current;
+    didDragRef.current = false;
 
     // Check if clicked on a node
     let clickedNode: SimNode | null = null;
@@ -553,6 +580,7 @@ export function EntityGraphView({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragRef.current.draggedNode) {
+      didDragRef.current = true;
       const coords = getCanvasCoords(e);
       dragRef.current.draggedNode.x = coords.x;
       dragRef.current.draggedNode.y = coords.y;
@@ -566,6 +594,9 @@ export function EntityGraphView({
       const rawY = e.clientY - rect.top;
       const dx = rawX - dragRef.current.startX;
       const dy = rawY - dragRef.current.startY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        didDragRef.current = true;
+      }
       transformRef.current.x += dx;
       transformRef.current.y += dy;
       dragRef.current.startX = rawX;
@@ -573,34 +604,51 @@ export function EntityGraphView({
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
+    if (dragRef.current.isDraggingCanvas && !didDragRef.current) {
+      setSelectedNodeId(null);
+    }
     dragRef.current = {
       isDraggingCanvas: false,
       draggedNode: null,
       startX: 0,
       startY: 0,
     };
-  };
+  }, []);
 
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+  // Release drag even if pointer leaves canvas, and attach non-passive wheel listener
+  useEffect(() => {
+    window.addEventListener('mouseup', handleMouseUp);
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (!canvas) return;
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-    const { x, y, scale } = transformRef.current;
-    const newScale = Math.max(0.3, Math.min(3, scale * zoomFactor));
+      const { x, y, scale } = transformRef.current;
+      const newScale = Math.max(0.3, Math.min(3, scale * zoomFactor));
 
-    transformRef.current = {
-      x: mouseX - (mouseX - x) * (newScale / scale),
-      y: mouseY - (mouseY - y) * (newScale / scale),
-      scale: newScale,
+      transformRef.current = {
+        x: mouseX - (mouseX - x) * (newScale / scale),
+        y: mouseY - (mouseY - y) * (newScale / scale),
+        scale: newScale,
+      };
+      setZoomLevel(newScale);
     };
-    setZoomLevel(newScale);
-  };
+
+    if (canvas) {
+      canvas.addEventListener('wheel', onWheel, { passive: false });
+    }
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp);
+      if (canvas) {
+        canvas.removeEventListener('wheel', onWheel);
+      }
+    };
+  }, [handleMouseUp]);
 
   const handleZoom = (factor: number) => {
     const canvas = canvasRef.current;
@@ -768,7 +816,6 @@ export function EntityGraphView({
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onWheel={handleWheel}
           className="w-full h-full block"
         />
       </div>

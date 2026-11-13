@@ -194,7 +194,7 @@ export function TargetCard({
             <span>Identified Slots ({target.handles.length})</span>
             {target.relationships.length > 0 && (
               <span className="text-cyan-400">
-                {target.relationships.length} linked entity
+                {target.relationships.length} linked {target.relationships.length === 1 ? 'entity' : 'entities'}
               </span>
             )}
           </div>
@@ -204,10 +204,16 @@ export function TargetCard({
               No slots recorded
             </p>
           ) : (
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-1.5">
               {target.handles.map((h) => {
                 const url = formatPlatformUrl(h.platform, h.value);
                 const platformMeta = PLATFORM_REGISTRY[h.platform];
+                const shortLabel =
+                  h.platform === 'custom'
+                    ? h.customLabel || 'slot'
+                    : h.platform.startsWith('crypto_')
+                    ? h.platform.replace('crypto_', '')
+                    : h.platform.slice(0, 4);
                 return (
                   <div
                     key={h.id}
@@ -215,7 +221,7 @@ export function TargetCard({
                     title={`${platformMeta?.name || h.platform}: ${h.value} (${h.verified})`}
                   >
                     <span className="text-[10px] text-cyan-400 uppercase font-semibold">
-                      {h.platform === 'custom' ? h.customLabel || 'slot' : h.platform.slice(0, 4)}:
+                      {shortLabel}:
                     </span>
                     <span className="text-slate-300 max-w-[120px] truncate">
                       {h.value}

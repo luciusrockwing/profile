@@ -95,7 +95,7 @@ export function ProfilesDashboard({
           icon={<UserPlus className="w-4 h-4" />}
           onClick={onAddNew}
         >
-          + Add New Target
+          Add New Target
         </AstryxButton>
       </div>
 
@@ -134,6 +134,7 @@ export function ProfilesDashboard({
                 { value: 'company', label: 'Company / Corporate' },
                 { value: 'syndicate', label: 'Syndicate / Group' },
                 { value: 'asset', label: 'Asset / Infrastructure' },
+                { value: 'unknown', label: 'Unknown' },
               ]}
             />
           </div>

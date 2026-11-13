@@ -7,6 +7,8 @@ import {
   buildEntityGraph,
   generateForensicChecksum,
   generateDossierReport,
+  removeTargetAndCleanRelationships,
+  syncRelationshipTargetNames,
 } from './osint-engine';
 import { OsintTarget } from './osint-types';
 
@@ -109,6 +111,31 @@ test('formatPlatformUrl builds proper external URLs without proxying', () => {
     'https://t.me/nullphantom'
   );
   assert.equal(
+    formatPlatformUrl('linkedin', 'company/nexus-dynamics-gmbh'),
+    'https://linkedin.com/company/nexus-dynamics-gmbh'
+  );
+  assert.equal(
+    formatPlatformUrl('linkedin', 'in/david-chen-security'),
+    'https://linkedin.com/in/david-chen-security'
+  );
+  assert.equal(
+    formatPlatformUrl('youtube', 'c/securitybrief'),
+    'https://youtube.com/c/securitybrief'
+  );
+  assert.equal(
+    formatPlatformUrl('youtube', '@cyberintel'),
+    'https://youtube.com/@cyberintel'
+  );
+  assert.equal(
+    formatPlatformUrl('reddit', 'r/netsec'),
+    'https://reddit.com/r/netsec'
+  );
+  assert.equal(
+    formatPlatformUrl('mastodon', '@analyst@infosec.exchange'),
+    'https://infosec.exchange/@analyst'
+  );
+  assert.equal(formatPlatformUrl('mastodon', 'invalidhandle'), null);
+  assert.equal(
     formatPlatformUrl('email', 'investigate@dark.net'),
     'mailto:investigate@dark.net'
   );
@@ -209,4 +236,17 @@ test('generateDossierReport outputs formatted audit string', () => {
   assert.ok(report.includes('Julian Sterling'));
   assert.ok(report.includes('@phantom_null'));
   assert.ok(report.includes('CipherFox'));
+});
+
+test('removeTargetAndCleanRelationships removes target and dangling relationship links', () => {
+  const cleaned = removeTargetAndCleanRelationships([sampleTarget1, sampleTarget2], 'target-002');
+  assert.equal(cleaned.length, 1);
+  assert.equal(cleaned[0].id, 'target-001');
+  assert.equal(cleaned[0].relationships.length, 0);
+});
+
+test('syncRelationshipTargetNames updates relationship targetName when target alias changes', () => {
+  const renamed = { ...sampleTarget2, alias: 'CipherVixen' };
+  const synced = syncRelationshipTargetNames([sampleTarget1, renamed], renamed);
+  assert.equal(synced[0].relationships[0].targetName, 'CipherVixen');
 });

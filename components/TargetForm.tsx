@@ -6,10 +6,7 @@ import {
   Plus,
   Trash2,
   AlertCircle,
-  CheckCircle2,
-  Shield,
   HelpCircle,
-  ExternalLink,
 } from 'lucide-react';
 import {
   OsintTarget,
@@ -67,10 +64,10 @@ export function TargetForm({
   const [groupInput, setGroupInput] = useState(initialTarget?.groups?.join(', ') || '');
 
   // Handle Slots
-  const [handles, setHandles] = useState<SocialHandleSlot[]>(
+  const [handles, setHandles] = useState<SocialHandleSlot[]>(() =>
     initialTarget?.handles || [
-      { id: 'h-init-1', platform: 'twitter', value: '', verified: 'verified' },
-      { id: 'h-init-2', platform: 'telegram', value: '', verified: 'verified' },
+      { id: `slot-${Date.now()}-1`, platform: 'twitter', value: '', verified: 'verified' },
+      { id: `slot-${Date.now()}-2`, platform: 'telegram', value: '', verified: 'verified' },
     ]
   );
 
@@ -94,6 +91,7 @@ export function TargetForm({
     setAvatarUrl(val);
     if (!val.trim()) {
       setAvatarStatus('idle');
+      setErrorMessage('');
       return;
     }
     const check = validateAvatarUrl(val);
@@ -153,11 +151,16 @@ export function TargetForm({
     setTimeline([
       ...timeline,
       {
-        id: `tl-${Date.now()}`,
+        id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         date: today,
         event: '',
+        source: '',
       },
     ]);
+  };
+
+  const updateTimelineEvent = (id: string, updates: Partial<TimelineEvent>) => {
+    setTimeline(timeline.map((t) => (t.id === id ? { ...t, ...updates } : t)));
   };
 
   const removeTimelineEvent = (id: string) => {
@@ -184,12 +187,16 @@ export function TargetForm({
     setIsSubmitting(true);
 
     try {
-      // Process tags
-      const cleanTags = tagInput
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map((t) => (t.startsWith('#') ? t : `#${t}`));
+      // Process and normalize tags (trimmed, lowercase, # prefixed, deduplicated)
+      const cleanTags = Array.from(
+        new Set(
+          tagInput
+            .split(',')
+            .map((t) => t.trim().toLowerCase())
+            .filter(Boolean)
+            .map((t) => (t.startsWith('#') ? t : `#${t}`))
+        )
+      );
 
       // Process companies & groups
       const cleanCompanies = companyInput
@@ -346,6 +353,7 @@ export function TargetForm({
                   { value: 'company', label: 'Company / Corporate' },
                   { value: 'syndicate', label: 'Syndicate / Group' },
                   { value: 'asset', label: 'Asset / Infrastructure' },
+                  { value: 'unknown', label: 'Unknown / Unclassified' },
                 ]}
               />
 
@@ -427,7 +435,7 @@ export function TargetForm({
                   icon={<Plus className="w-3.5 h-3.5" />}
                   onClick={addHandleSlot}
                 >
-                  + Add Slot
+                  Add Slot
                 </AstryxButton>
               </div>
 
@@ -453,13 +461,25 @@ export function TargetForm({
                         />
                       </div>
 
+                      {slot.platform === 'custom' && (
+                        <div className="w-full sm:w-32">
+                          <AstryxInput
+                            value={slot.customLabel || ''}
+                            onChange={(e) =>
+                              updateHandleSlot(slot.id, { customLabel: e.target.value })
+                            }
+                            placeholder="Label (e.g. Keybase)"
+                          />
+                        </div>
+                      )}
+
                       <div className="flex-1">
                         <AstryxInput
                           value={slot.value}
                           onChange={(e) =>
                             updateHandleSlot(slot.id, { value: e.target.value })
                           }
-                          placeholder="Handle / Username / Identifier"
+                          placeholder={PLATFORM_REGISTRY[slot.platform]?.placeholder || 'Handle / Username / Identifier'}
                         />
                       </div>
 
@@ -512,7 +532,7 @@ export function TargetForm({
                     icon={<Plus className="w-3.5 h-3.5" />}
                     onClick={addRelationship}
                   >
-                    + Link Entity
+                    Link Entity
                   </AstryxButton>
                 </div>
 
@@ -548,7 +568,7 @@ export function TargetForm({
                         />
                       </div>
 
-                      <div className="w-full sm:w-48">
+                      <div className="w-full sm:w-52">
                         <AstryxSelect
                           value={rel.relationshipType}
                           onChange={(e) => {
@@ -565,11 +585,12 @@ export function TargetForm({
                           }}
                           options={[
                             { value: 'collaborator', label: 'Collaborator' },
-                            { value: 'superior', label: 'Superior / Boss' },
-                            { value: 'subordinate', label: 'Subordinate' },
-                            { value: 'subsidiary', label: 'Subsidiary Entity' },
-                            { value: 'competitor', label: 'Competitor / Adversary' },
-                            { value: 'financial_link', label: 'Financial Link' },
+                            { value: 'member_of', label: 'Member Of' },
+                            { value: 'operates', label: 'Operates' },
+                            { value: 'aliases_as', label: 'Aliases As' },
+                            { value: 'parent_company_of', label: 'Parent Company Of' },
+                            { value: 'shared_infrastructure', label: 'Shared Infrastructure' },
+                            { value: 'reported_associate', label: 'Reported Associate' },
                           ]}
                         />
                       </div>
@@ -587,6 +608,76 @@ export function TargetForm({
                 </div>
               </div>
             )}
+
+            {/* Chronology & Timeline Events */}
+            <div className="space-y-3 pt-2 border-t border-[#121d33]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-mono font-bold text-slate-200">
+                    CHRONOLOGY &amp; TIMELINE ({timeline.length})
+                  </h3>
+                  <p className="text-[11px] font-mono text-slate-400">
+                    Log timestamped intelligence sightings, domain registrations, or incidents.
+                  </p>
+                </div>
+                <AstryxButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={<Plus className="w-3.5 h-3.5" />}
+                  onClick={addTimelineEvent}
+                >
+                  Add Event
+                </AstryxButton>
+              </div>
+
+              {timeline.length > 0 && (
+                <div className="space-y-2">
+                  {timeline.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 rounded-lg border border-[#16233b] bg-[#070b14]"
+                    >
+                      <div className="w-full sm:w-36">
+                        <AstryxInput
+                          type="date"
+                          value={item.date}
+                          onChange={(e) =>
+                            updateTimelineEvent(item.id, { date: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <AstryxInput
+                          value={item.event}
+                          onChange={(e) =>
+                            updateTimelineEvent(item.id, { event: e.target.value })
+                          }
+                          placeholder="Observed activity or intelligence event..."
+                        />
+                      </div>
+                      <div className="w-full sm:w-40">
+                        <AstryxInput
+                          value={item.source || ''}
+                          onChange={(e) =>
+                            updateTimelineEvent(item.id, { source: e.target.value })
+                          }
+                          placeholder="Source (optional)"
+                        />
+                      </div>
+                      <AstryxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon={<Trash2 className="w-4 h-4 text-slate-500 hover:text-rose-400" />}
+                        onClick={() => removeTimelineEvent(item.id)}
+                        aria-label="Remove Timeline Event"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Tags & Metadata */}
             <div className="space-y-3 pt-2 border-t border-[#121d33]">

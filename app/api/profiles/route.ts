@@ -3,7 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import { OsintTarget } from '@/lib/osint-types';
 import { INITIAL_TARGETS } from '@/lib/seed-data';
-import { validateAvatarUrl } from '@/lib/osint-engine';
+import {
+  validateAvatarUrl,
+  removeTargetAndCleanRelationships,
+  syncRelationshipTargetNames,
+} from '@/lib/osint-engine';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'targets.json');
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const target: OsintTarget = body.target;
 
-    if (!target || !target.alias) {
+    if (!target || typeof target.alias !== 'string' || !target.alias.trim()) {
       return NextResponse.json(
         { error: 'Invalid target data. Target alias is required.' },
         { status: 400 }
@@ -62,13 +66,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const targets = ensureDataFile();
+    let targets = ensureDataFile();
     const existingIndex = targets.findIndex((t) => t.id === target.id);
 
     const now = new Date().toISOString();
     const cleanTarget: OsintTarget = {
       ...target,
       id: target.id || `tgt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      alias: target.alias.trim(),
       updatedAt: now,
       createdAt: target.createdAt || now,
       handles: Array.isArray(target.handles) ? target.handles : [],
@@ -81,12 +86,13 @@ export async function POST(req: NextRequest) {
 
     if (existingIndex >= 0) {
       targets[existingIndex] = cleanTarget;
+      targets = syncRelationshipTargetNames(targets, cleanTarget);
     } else {
       targets.unshift(cleanTarget);
     }
 
     saveDataFile(targets);
-    return NextResponse.json({ success: true, target: cleanTarget, count: targets.length });
+    return NextResponse.json({ success: true, target: cleanTarget, targets, count: targets.length });
   } catch (err) {
     console.error('Failed to save profile:', err);
     return NextResponse.json({ error: 'Server error saving profile' }, { status: 500 });
@@ -102,11 +108,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Target ID is required' }, { status: 400 });
     }
 
-    let targets = ensureDataFile();
-    targets = targets.filter((t) => t.id !== id);
+    const existing = ensureDataFile();
+    const targets = removeTargetAndCleanRelationships(existing, id);
     saveDataFile(targets);
 
-    return NextResponse.json({ success: true, count: targets.length });
+    return NextResponse.json({ success: true, targets, count: targets.length });
   } catch (err) {
     console.error('Failed to delete profile:', err);
     return NextResponse.json({ error: 'Server error deleting profile' }, { status: 500 });
@@ -121,11 +127,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: true, targets: INITIAL_TARGETS, count: INITIAL_TARGETS.length });
     }
     if (body.action === 'import' && Array.isArray(body.targets)) {
-      // Validate every target avatar URL
       for (const t of body.targets) {
+        if (!t || typeof t.id !== 'string' || !t.id.trim() || typeof t.alias !== 'string' || !t.alias.trim()) {
+          return NextResponse.json(
+            { error: 'Import failed: Every target must include valid id and alias fields.' },
+            { status: 400 }
+          );
+        }
         const val = validateAvatarUrl(t.avatarUrl);
         if (!val.valid) {
-          return NextResponse.json({ error: `Import failed: Target ${t.alias} has invalid avatar: ${val.reason}` }, { status: 400 });
+          return NextResponse.json(
+            { error: `Import failed: Target ${t.alias} has invalid avatar: ${val.reason}` },
+            { status: 400 }
+          );
         }
       }
       saveDataFile(body.targets);
