@@ -107,3 +107,26 @@ export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
 }
+
+export interface GraphPathResult {
+  nodeIds: string[];
+  links: GraphLink[];
+  hopCount: number;
+}
+
+export interface BridgeNodeSummary {
+  nodeId: string;
+  label: string;
+  type: GraphNode['type'];
+  connectedTargetCount: number;
+  connectedTargetIds: string[];
+  degree: number;
+}
+
+export interface GraphTopologySummary {
+  clusterCount: number;
+  isolatedNodeIds: string[];
+  bridgeNodes: BridgeNodeSummary[];
+  nodeDegrees: Record<string, number>;
+}
+

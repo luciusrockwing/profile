@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { OsintTarget } from '@/lib/osint-types';
+import { MAX_DATABASE_BYTES, validateImportBatch } from '@/lib/osint-engine';
 import { AstryxButton } from './astryx/Button';
 import { AstryxBadge } from './astryx/Badge';
 import { AstryxCard, AstryxCardHeader, AstryxCardBody, AstryxCardFooter } from './astryx/Card';
@@ -34,19 +35,30 @@ export function DataManagementView({
     text: string;
   } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [pendingImportTargets, setPendingImportTargets] = useState<OsintTarget[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Compute storage statistics
-  const totalHandles = targets.reduce((acc, t) => acc + t.handles.length, 0);
-  const totalCompanies = targets.reduce((acc, t) => acc + t.companies.length, 0);
-  const totalGroups = targets.reduce((acc, t) => acc + t.groups.length, 0);
+  // Compute storage statistics safely
+  const totalHandles = targets.reduce(
+    (acc, t) => acc + (Array.isArray(t.handles) ? t.handles.length : 0),
+    0
+  );
+  const totalCompanies = targets.reduce(
+    (acc, t) => acc + (Array.isArray(t.companies) ? t.companies.length : 0),
+    0
+  );
+  const totalGroups = targets.reduce(
+    (acc, t) => acc + (Array.isArray(t.groups) ? t.groups.length : 0),
+    0
+  );
 
   // Approximate JSON byte size
   const jsonSizeEstimateBytes = new TextEncoder().encode(JSON.stringify(targets)).length;
   const jsonSizeKb = (jsonSizeEstimateBytes / 1024).toFixed(2);
 
-  // Export JSON
+  // Export JSON with deferred ObjectURL cleanup
   const handleExportJson = () => {
     const jsonStr = JSON.stringify(targets, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -55,33 +67,66 @@ export function DataManagementView({
     a.href = url;
     a.download = `specter_osint_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatusMessage({
       type: 'success',
       text: `Successfully exported ${targets.length} target dossiers (${jsonSizeKb} KB).`,
     });
   };
 
-  // Import JSON
+  const executeImport = async (validatedTargets: OsintTarget[]) => {
+    setIsImporting(true);
+    try {
+      await onImport(validatedTargets);
+      setPendingImportTargets(null);
+      setStatusMessage({
+        type: 'success',
+        text: `Successfully imported ${validatedTargets.length} target profiles into database.`,
+      });
+    } catch (err: unknown) {
+      console.error('Import failed:', err instanceof Error ? err.message : 'Unknown error');
+      setPendingImportTargets(null);
+      setStatusMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to import database backup.',
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Validate selected JSON backup before confirming overwrite
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-
-      if (!Array.isArray(parsed)) {
-        throw new Error('Imported JSON file must contain an array of target profiles.');
+      if (file.size > MAX_DATABASE_BYTES) {
+        throw new Error(
+          `Import failed: File size (${(file.size / 1024).toFixed(1)} KB) exceeds the ${(MAX_DATABASE_BYTES / 1024).toFixed(0)} KB zero-blob limit.`
+        );
       }
 
-      await onImport(parsed);
-      setStatusMessage({
-        type: 'success',
-        text: `Successfully imported ${parsed.length} target profiles into database.`,
-      });
+      const text = await file.text();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error('Import failed: File contains malformed JSON.');
+      }
+
+      const validation = validateImportBatch(parsed);
+      if (!validation.valid) {
+        throw new Error(validation.reason);
+      }
+
+      if (targets.length > 0) {
+        setPendingImportTargets(validation.targets);
+      } else {
+        await executeImport(validation.targets);
+      }
     } catch (err: unknown) {
-      console.error('Import failed:', err);
+      console.warn('Import validation rejected:', err instanceof Error ? err.message : 'Unknown error');
       setStatusMessage({
         type: 'error',
         text: err instanceof Error ? err.message : 'Invalid JSON file format.',
@@ -91,12 +136,10 @@ export function DataManagementView({
     }
   };
 
-  // Trigger file dialog
   const triggerImport = () => {
     fileInputRef.current?.click();
   };
 
-  // Reset to default sample seed data
   const handleConfirmResetData = async () => {
     setIsResetting(true);
     try {
@@ -107,11 +150,11 @@ export function DataManagementView({
         text: 'Database successfully re-seeded with factory intelligence profiles.',
       });
     } catch (err) {
-      console.error('Reset error:', err);
+      console.error('Reset error:', err instanceof Error ? err.message : 'Unknown error');
       setShowResetModal(false);
       setStatusMessage({
         type: 'error',
-        text: 'Failed to reset database.',
+        text: err instanceof Error ? err.message : 'Failed to reset database.',
       });
     } finally {
       setIsResetting(false);
@@ -150,6 +193,7 @@ export function DataManagementView({
           <AstryxButton
             variant="secondary"
             size="sm"
+            loading={isImporting}
             icon={<Upload className="w-4 h-4" />}
             onClick={triggerImport}
           >
@@ -167,6 +211,7 @@ export function DataManagementView({
 
       {statusMessage && (
         <div
+          role="status"
           className={`p-3 rounded-lg border font-mono text-xs flex items-center space-x-2 ${
             statusMessage.type === 'success'
               ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300'
@@ -299,6 +344,44 @@ export function DataManagementView({
         </AstryxCardFooter>
       </AstryxCard>
 
+      {/* Import Overwrite Confirmation Modal */}
+      <AstryxModal
+        isOpen={!!pendingImportTargets}
+        onClose={() => !isImporting && setPendingImportTargets(null)}
+        size="md"
+        title="CONFIRM DATABASE IMPORT"
+        subtitle="data/targets.json"
+        footer={
+          <div className="flex items-center justify-end space-x-2">
+            <AstryxButton
+              variant="outline"
+              size="sm"
+              disabled={isImporting}
+              onClick={() => setPendingImportTargets(null)}
+            >
+              Cancel
+            </AstryxButton>
+            <AstryxButton
+              variant="primary"
+              size="sm"
+              loading={isImporting}
+              onClick={() => pendingImportTargets && executeImport(pendingImportTargets)}
+            >
+              Overwrite & Import ({pendingImportTargets?.length ?? 0})
+            </AstryxButton>
+          </div>
+        }
+      >
+        <div className="flex items-start space-x-3 font-mono text-xs text-slate-300">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Importing <span className="text-slate-100 font-bold tabular-nums">{pendingImportTargets?.length ?? 0}</span> validated target dossiers will replace your current{' '}
+            <span className="text-slate-100 font-bold tabular-nums">{targets.length}</span> stored profiles. Export a backup first if you need to preserve current records.
+          </p>
+        </div>
+      </AstryxModal>
+
+      {/* Reset Database Confirmation Modal */}
       <AstryxModal
         isOpen={showResetModal}
         onClose={() => !isResetting && setShowResetModal(false)}

@@ -31,10 +31,21 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
     fetch('/api/profiles')
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            typeof data?.error === 'string'
+              ? data.error
+              : `Database load failed (HTTP ${res.status})`
+          );
+        }
+        return data;
+      })
       .then((data) => {
         if (isMounted && Array.isArray(data?.targets)) {
           setTargets(data.targets);
+          setActionError(null);
           try {
             localStorage.setItem('specter_osint_targets', JSON.stringify(data.targets));
           } catch {
@@ -43,8 +54,11 @@ export default function Home() {
         }
       })
       .catch((err) => {
-        console.error('API fetch error, falling back to cached local storage:', err);
+        const message =
+          err instanceof Error ? err.message : 'Failed to load targets from database.';
+        console.error('API fetch error:', message);
         if (!isMounted) return;
+        setActionError(message);
         try {
           const cached = localStorage.getItem('specter_osint_targets');
           if (cached) {
@@ -63,8 +77,8 @@ export default function Home() {
     };
   }, []);
 
-  // Save (Create or Update) Target
-  const handleSaveTarget = async (target: OsintTarget) => {
+  // Persist (Create or Update) Target without changing active tab
+  const persistTarget = async (target: OsintTarget) => {
     try {
       const res = await fetch('/api/profiles', {
         method: 'POST',
@@ -72,12 +86,10 @@ export default function Home() {
         body: JSON.stringify({ target }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Failed to save profile');
       }
-
-      const data = await res.json();
       const savedTarget: OsintTarget = data.target || target;
 
       if (Array.isArray(data.targets)) {
@@ -104,12 +116,23 @@ export default function Home() {
         });
       }
 
-      setEditingTarget(null);
-      setActiveTab('profiles');
+      return savedTarget;
     } catch (err) {
       console.error('Save error:', err);
       throw err;
     }
+  };
+
+  // Save (Create or Update) Target from Form
+  const handleSaveTarget = async (target: OsintTarget) => {
+    await persistTarget(target);
+    setEditingTarget(null);
+    setActiveTab('profiles');
+  };
+
+  // Update Target inline (e.g. adding relationship links from Entity Graph)
+  const handleUpdateTargetInPlace = async (target: OsintTarget) => {
+    await persistTarget(target);
   };
 
   // Prompt Delete Target via in-app modal (no window.confirm)
@@ -180,15 +203,15 @@ export default function Home() {
       body: JSON.stringify({ action: 'reset' }),
     });
 
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error('Failed to reset database');
+      throw new Error(data.error || 'Failed to reset database');
     }
-
-    const data = await res.json();
     const nextTargets = data.targets || INITIAL_TARGETS;
     setTargets(nextTargets);
     setSelectedTarget(null);
     setEditingTarget(null);
+    setActionError(null);
     try {
       localStorage.setItem('specter_osint_targets', JSON.stringify(nextTargets));
     } catch {
@@ -204,16 +227,16 @@ export default function Home() {
       body: JSON.stringify({ action: 'import', targets: newTargets }),
     });
 
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to import targets');
+      throw new Error(data.error || 'Failed to import targets');
     }
 
-    const data = await res.json();
     const nextTargets = data.targets || newTargets;
     setTargets(nextTargets);
     setSelectedTarget(null);
     setEditingTarget(null);
+    setActionError(null);
     try {
       localStorage.setItem('specter_osint_targets', JSON.stringify(nextTargets));
     } catch {
@@ -275,6 +298,7 @@ export default function Home() {
               setEditingTarget(null);
               setActiveTab('new');
             }}
+            onUpdateTarget={handleUpdateTargetInPlace}
           />
         )}
 

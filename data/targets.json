@@ -1,44 +1,5 @@
 [
   {
-    "id": "tgt-1794300464018-afbvz",
-    "alias": "PhishPhantom",
-    "realName": "Marcus Thorne",
-    "category": "individual",
-    "status": "active",
-    "priority": "medium",
-    "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&auto=format&fit=crop&q=80",
-    "organization": "ShadowGrid Syndicate",
-    "companies": [
-      "Apex Cyber Solutions"
-    ],
-    "groups": [
-      "PhishOps Team"
-    ],
-    "tags": [
-      "#phishing",
-      "#infostealer"
-    ],
-    "handles": [
-      {
-        "id": "h-init-1",
-        "platform": "twitter",
-        "value": "@phantom_sec",
-        "verified": "verified"
-      },
-      {
-        "id": "h-init-2",
-        "platform": "telegram",
-        "value": "@phantom_intel",
-        "verified": "verified"
-      }
-    ],
-    "relationships": [],
-    "timeline": [],
-    "notes": "Identified operating high-volume credential harvesting kit.",
-    "createdAt": "2026-11-10T08:47:44.018Z",
-    "updatedAt": "2026-11-10T08:47:44.049Z"
-  },
-  {
     "id": "tgt-vortex-raven",
     "alias": "VortexRaven",
     "realName": "Alexei Vance",

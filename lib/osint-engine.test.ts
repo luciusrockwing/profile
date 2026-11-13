@@ -9,6 +9,12 @@ import {
   generateDossierReport,
   removeTargetAndCleanRelationships,
   syncRelationshipTargetNames,
+  findShortestGraphPath,
+  getEgoSubgraph,
+  analyzeGraphTopology,
+  containsBase64Blob,
+  normalizeAndValidateTarget,
+  validateImportBatch,
 } from './osint-engine';
 import { OsintTarget } from './osint-types';
 
@@ -250,3 +256,200 @@ test('syncRelationshipTargetNames updates relationship targetName when target al
   const synced = syncRelationshipTargetNames([sampleTarget1, renamed], renamed);
   assert.equal(synced[0].relationships[0].targetName, 'CipherVixen');
 });
+
+test('findShortestGraphPath finds zero-hop, direct, and multi-hop bridge paths', () => {
+  const sampleTarget3: OsintTarget = {
+    ...sampleTarget2,
+    id: 'target-003',
+    alias: 'GhostRelay',
+    organization: undefined,
+    companies: [],
+    groups: ['RedCell Alpha'], // Connects to target-002 via RedCell Alpha
+    tags: [],
+    handles: [],
+    relationships: [],
+  };
+
+  const isolatedTarget: OsintTarget = {
+    ...sampleTarget2,
+    id: 'target-004',
+    alias: 'LoneWolf',
+    organization: undefined,
+    companies: [],
+    groups: [],
+    tags: [],
+    handles: [],
+    relationships: [],
+  };
+
+  const graph = buildEntityGraph([sampleTarget1, sampleTarget2, sampleTarget3, isolatedTarget], {
+    includeCompanies: true,
+    includeGroups: true,
+    includeHandles: false,
+    includeTags: false,
+  });
+
+  // Zero-hop self path
+  const selfPath = findShortestGraphPath(graph, 'target_target-001', 'target_target-001');
+  assert.ok(selfPath);
+  assert.equal(selfPath.hopCount, 0);
+  assert.deepEqual(selfPath.nodeIds, ['target_target-001']);
+
+  // Multi-hop path from target-001 -> target-002 -> grp_redcell_alpha -> target-003
+  const multiPath = findShortestGraphPath(graph, 'target_target-001', 'target_target-003');
+  assert.ok(multiPath);
+  assert.equal(multiPath.hopCount, 3);
+  assert.equal(multiPath.nodeIds[0], 'target_target-001');
+  assert.equal(multiPath.nodeIds[multiPath.nodeIds.length - 1], 'target_target-003');
+
+  // Unreachable isolated target
+  const noPath = findShortestGraphPath(graph, 'target_target-001', 'target_target-004');
+  assert.equal(noPath, null);
+
+  // Missing node
+  assert.equal(findShortestGraphPath(graph, 'nonexistent', 'target_target-001'), null);
+});
+
+test('getEgoSubgraph isolates 1-hop and 2-hop neighborhoods cleanly', () => {
+  const sampleTarget3: OsintTarget = {
+    ...sampleTarget2,
+    id: 'target-003',
+    alias: 'GhostRelay',
+    organization: undefined,
+    companies: [],
+    groups: ['RedCell Alpha'],
+    tags: [],
+    handles: [],
+    relationships: [],
+  };
+
+  const graph = buildEntityGraph([sampleTarget1, sampleTarget2, sampleTarget3], {
+    includeCompanies: false,
+    includeGroups: true,
+    includeHandles: false,
+    includeTags: false,
+  });
+
+  // 1-hop around target-003 includes only target-003 and grp_redcell_alpha
+  const oneHop = getEgoSubgraph(graph, 'target_target-003', 1);
+  assert.deepEqual(
+    oneHop.nodes.map((n) => n.id).sort(),
+    ['grp_redcell_alpha', 'target_target-003']
+  );
+  assert.equal(oneHop.links.length, 1);
+
+  // 2-hop around target-003 expands to target-002
+  const twoHop = getEgoSubgraph(graph, 'target_target-003', 2);
+  assert.ok(twoHop.nodes.some((n) => n.id === 'target_target-002'));
+  assert.equal(twoHop.nodes.some((n) => n.id === 'target_target-001'), false);
+
+  // Unknown center returns empty graph
+  const missing = getEgoSubgraph(graph, 'missing_node', 1);
+  assert.equal(missing.nodes.length, 0);
+  assert.equal(missing.links.length, 0);
+});
+
+test('analyzeGraphTopology detects clusters, isolated nodes, and shared bridge entities', () => {
+  const isolatedTarget: OsintTarget = {
+    ...sampleTarget2,
+    id: 'target-004',
+    alias: 'LoneWolf',
+    organization: undefined,
+    companies: [],
+    groups: [],
+    tags: [],
+    handles: [],
+    relationships: [],
+  };
+
+  const graph = buildEntityGraph([sampleTarget1, sampleTarget2, isolatedTarget], {
+    includeCompanies: true,
+    includeGroups: true,
+    includeHandles: false,
+    includeTags: false,
+  });
+
+  const summary = analyzeGraphTopology(graph);
+  assert.equal(summary.clusterCount, 2);
+  assert.deepEqual(summary.isolatedNodeIds, ['target_target-004']);
+  assert.equal(summary.nodeDegrees['target_target-004'], 0);
+
+  // Both 'Aegis Cyber' and 'Aegis Defense' bridge sampleTarget1 & sampleTarget2
+  const bridgeLabels = summary.bridgeNodes.map((b) => b.label);
+  assert.ok(bridgeLabels.includes('Aegis Cyber'));
+  assert.ok(bridgeLabels.includes('Aegis Defense'));
+  assert.ok(summary.bridgeNodes.every((b) => b.connectedTargetCount >= 2));
+});
+
+test('containsBase64Blob and validateAvatarUrl block case-insensitive data URIs across fields', () => {
+  assert.equal(validateAvatarUrl('DATA:image/png;base64,AAAA').valid, false);
+  assert.equal(containsBase64Blob('Look at data:image/jpeg;base64,/9j/4AAQ'), true);
+  assert.equal(containsBase64Blob('Normal analyst notes without binary blobs.'), false);
+});
+
+test('normalizeAndValidateTarget sanitizes partial targets and rejects invalid enums or blobs', () => {
+  const validMinimal = normalizeAndValidateTarget({
+    alias: '  ShadowBroker  ',
+    tags: ['Phishing', '#phishing', 'FinOps'],
+  });
+  assert.equal(validMinimal.valid, true);
+  if (validMinimal.valid) {
+    assert.equal(validMinimal.target.alias, 'ShadowBroker');
+    assert.equal(validMinimal.target.category, 'individual');
+    assert.deepEqual(validMinimal.target.tags, ['#phishing', '#finops']);
+    assert.deepEqual(validMinimal.target.handles, []);
+  }
+
+  const badEnum = normalizeAndValidateTarget({
+    alias: 'BadActor',
+    category: 'spacecraft',
+  });
+  assert.equal(badEnum.valid, false);
+
+  const blobInNotes = normalizeAndValidateTarget({
+    alias: 'BlobActor',
+    notes: 'evidence: data:image/png;base64,iVBORw0KGgo=',
+  });
+  assert.equal(blobInNotes.valid, false);
+});
+
+test('validateImportBatch rejects duplicate IDs, oversized payloads, and cleans dangling relationships', () => {
+  const dupCheck = validateImportBatch([
+    { id: 't1', alias: 'Alpha' },
+    { id: 't1', alias: 'Beta' },
+  ]);
+  assert.equal(dupCheck.valid, false);
+  if (!dupCheck.valid) {
+    assert.match(dupCheck.reason, /Duplicate target id/i);
+  }
+
+  const sizeCheck = validateImportBatch([{ id: 't1', alias: 'Alpha', notes: 'x'.repeat(2000) }], 500);
+  assert.equal(sizeCheck.valid, false);
+  if (!sizeCheck.valid) {
+    assert.match(sizeCheck.reason, /exceeds/i);
+  }
+
+  const cleanCheck = validateImportBatch([
+    {
+      id: 't1',
+      alias: 'AlphaRenamed',
+      relationships: [
+        { id: 'r1', targetId: 't2', targetName: 'OldBeta', relationshipType: 'collaborator' },
+        { id: 'r2', targetId: 'missing-id', targetName: 'Ghost', relationshipType: 'collaborator' },
+      ],
+    },
+    {
+      id: 't2',
+      alias: 'BetaCurrent',
+      relationships: [],
+    },
+  ]);
+  assert.equal(cleanCheck.valid, true);
+  if (cleanCheck.valid) {
+    assert.equal(cleanCheck.targets[0].relationships.length, 1);
+    assert.equal(cleanCheck.targets[0].relationships[0].targetId, 't2');
+    assert.equal(cleanCheck.targets[0].relationships[0].targetName, 'BetaCurrent');
+  }
+});
+
+

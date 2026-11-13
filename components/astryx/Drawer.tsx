@@ -29,7 +29,7 @@ export function AstryxDrawer({
     <div
       role="region"
       aria-label="Entity Inspector Panel"
-      className={`absolute top-4 right-4 bottom-16 z-30 w-80 sm:w-96 bg-[#0a0e18]/95 backdrop-blur-md border border-cyan-500/40 rounded-xl shadow-2xl p-4 overflow-hidden flex flex-col justify-between ${className}`}
+      className={`absolute top-28 md:top-16 right-4 bottom-16 z-30 w-80 sm:w-96 bg-[#0a0e18]/95 backdrop-blur-md border border-cyan-500/40 rounded-xl shadow-2xl p-4 overflow-hidden flex flex-col justify-between ${className}`}
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Drawer Header */}
